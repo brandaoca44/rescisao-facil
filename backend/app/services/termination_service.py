@@ -1,10 +1,11 @@
 from decimal import Decimal, ROUND_HALF_UP
 
 from app.domain.accrual import (
-    calculate_thirteenth_accrued_months,
+    calculate_thirteenth_accrued_months_by_year,
     calculate_vacation_accrued_months,
 )
 from app.domain.fgts import (
+    calculate_fgts_deposit,
     calculate_fgts_penalty,
     calculate_fgts_termination_deposit,
 )
@@ -17,8 +18,11 @@ from app.domain.notice_period import (
 )
 from app.domain.salary_balance import calculate_salary_balance_for_dates
 from app.domain.thirteenth_salary import (
+    ThirteenthPreviousPayment,
     calculate_proportional_thirteenth_salary,
+    settle_thirteenth_salary,
 )
+from app.domain.termination_benefits import get_termination_benefits
 from app.domain.termination_rules import get_termination_rules
 from app.domain.termination_type import TerminationType
 from app.domain.vacation import (
@@ -32,6 +36,9 @@ from app.domain.notice_period_rules import validate_notice_period_type
 from app.domain.notice_period_type import NoticePeriodType
 
 from app.schemas.termination import (
+    ThirteenthSalaryYearResult,
+    ThirteenthSettlementResult,
+    TerminationBenefitsResult,
     TerminationCalculationInput,
     TerminationCalculationResult,
 )
@@ -148,23 +155,26 @@ def calculate_termination(
         overdue_periods=data.overdue_vacation_periods,
     )
 
-    # 13º proporcional.
+    # O ano da projeção não substitui os avos do ano do desligamento.
+    thirteenth_salary_by_year = []
     if rules.pays_proportional_thirteenth:
-        thirteenth_accrued_months = (
-            calculate_thirteenth_accrued_months(
-                admission_date=data.admission_date,
-                termination_date=projected_termination_date,
-            )
+        months_by_year = calculate_thirteenth_accrued_months_by_year(
+            admission_date=data.admission_date,
+            termination_date=data.termination_date,
+            projected_termination_date=projected_termination_date,
         )
-
-        thirteenth_salary = (
-            calculate_proportional_thirteenth_salary(
-                monthly_salary=data.monthly_salary,
-                accrued_months=thirteenth_accrued_months,
-            )
-        )
-    else:
-        thirteenth_salary = Decimal("0.00")
+        for accrual_year, accrued_months in months_by_year.items():
+            thirteenth_salary_by_year.append(ThirteenthSalaryYearResult(
+                year=accrual_year,
+                accrued_months=accrued_months,
+                value=calculate_proportional_thirteenth_salary(
+                    monthly_salary=data.monthly_salary,
+                    accrued_months=accrued_months,
+                ),
+            ))
+    thirteenth_salary = sum(
+        (item.value for item in thirteenth_salary_by_year), Decimal("0.00"),
+    )
 
     # Férias proporcionais.
     if rules.pays_proportional_vacation:
@@ -256,6 +266,34 @@ def calculate_termination(
         )
     )
 
+    # A base tributária é integral; o histórico reduz somente o que falta reter.
+    previous_input = data.thirteenth_previous_payment
+    previous = ThirteenthPreviousPayment(
+        gross_amount=previous_input.gross_amount,
+        inss_withheld=previous_input.inss_withheld,
+        irrf_withheld=previous_input.irrf_withheld,
+        fgts_deposited=previous_input.fgts_deposited,
+    )
+    current_year_thirteenth = next(
+        (item.value for item in thirteenth_salary_by_year if item.year == year),
+        Decimal("0.00"),
+    )
+    inss_thirteenth_assessed = inss_thirteenth
+    irrf_thirteenth_assessed = irrf_thirteenth
+    settlement = settle_thirteenth_salary(
+        gross_amount=thirteenth_salary,
+        current_year_amount=current_year_thirteenth,
+        inss_assessed=inss_thirteenth_assessed,
+        irrf_assessed=irrf_thirteenth_assessed,
+        current_year_fgts=calculate_fgts_deposit(current_year_thirteenth),
+        previous=previous,
+    )
+    inss_thirteenth = settlement.inss_remaining
+    inss_total = inss_monthly + inss_thirteenth
+    irrf_thirteenth = settlement.irrf_remaining
+    irrf_total = irrf_monthly + irrf_thirteenth
+    fgts_termination_deposit -= previous.fgts_deposited
+
     # Total bruto pago diretamente ao trabalhador.
     #
     # FGTS e multa rescisória continuam fora deste total.
@@ -277,11 +315,24 @@ def calculate_termination(
         - inss_total
         - irrf_total
         - notice_period_discount
+        - previous.gross_amount
     )
+
+    benefits = get_termination_benefits(data.termination_type)
 
     return TerminationCalculationResult(
         salary_balance=salary_balance,
         thirteenth_salary=thirteenth_salary,
+        thirteenth_salary_by_year=thirteenth_salary_by_year,
+        thirteenth_settlement=ThirteenthSettlementResult(
+            gross_paid=previous.gross_amount,
+            gross_balance=settlement.gross_balance,
+            inss_assessed=inss_thirteenth_assessed,
+            irrf_assessed=irrf_thirteenth_assessed,
+            inss_previously_withheld=previous.inss_withheld,
+            irrf_previously_withheld=previous.irrf_withheld,
+            fgts_previously_deposited=previous.fgts_deposited,
+        ),
         vacation_accrued_months=vacation_accrued_months,
         proportional_vacation=proportional_vacation,
         proportional_vacation_bonus=proportional_vacation_bonus,
@@ -303,4 +354,13 @@ def calculate_termination(
         irrf_total=irrf_total,
         total=total,
         net_total=net_total,
+        benefits=TerminationBenefitsResult(
+            fgts_withdrawal_rate_under_saque_rescisao=(
+                benefits.fgts_withdrawal_rate_under_saque_rescisao
+            ),
+            unemployment_insurance_possible_by_termination_type=(
+                benefits.unemployment_insurance_possible_by_termination_type
+            ),
+            notes=list(benefits.notes),
+        ),
     )

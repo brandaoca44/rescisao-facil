@@ -48,17 +48,36 @@ def calculate_thirteenth_accrued_months(
     return accrued_months
 
 
+def calculate_thirteenth_accrued_months_by_year(
+    admission_date: date,
+    termination_date: date,
+    projected_termination_date: date,
+) -> dict[int, int]:
+    """Conta avos por ano, do ano do desligamento ao fim da projeção."""
+    if termination_date < admission_date:
+        raise ValueError("Termination date cannot be before admission date.")
+    if projected_termination_date < termination_date:
+        raise ValueError("Projected date cannot be before termination date.")
+
+    months_by_year = {}
+    for year in range(termination_date.year, projected_termination_date.year + 1):
+        start = max(admission_date, date(year, 1, 1))
+        end = min(projected_termination_date, date(year, 12, 31))
+        months_by_year[year] = calculate_thirteenth_accrued_months(start, end)
+    return months_by_year
+
+
 def _add_months(value: date, months: int) -> date:
-    """Adiciona meses preservando o dia quando possível."""
+    """Marco mensal ancorado; dia inexistente vence no primeiro subsequente."""
 
     month_index = value.month - 1 + months
     year = value.year + month_index // 12
     month = month_index % 12 + 1
 
     last_day = monthrange(year, month)[1]
-    day = min(value.day, last_day)
-
-    return date(year, month, day)
+    if value.day > last_day:
+        return date(year, month, last_day) + timedelta(days=1)
+    return date(year, month, value.day)
 
 
 def calculate_current_vacation_period_start(
@@ -98,6 +117,17 @@ def calculate_completed_vacation_periods(
     return max(years, 0)
 
 
+def calculate_overdue_vacation_periods(
+    admission_date: date, reference_date: date,
+) -> int:
+    """Limite de períodos cujo prazo concessivo já terminou na referência."""
+    completed = calculate_completed_vacation_periods(admission_date, reference_date)
+    elapsed_anniversaries = completed
+    if _vacation_anniversary(admission_date, completed) > reference_date:
+        elapsed_anniversaries -= 1
+    return max(elapsed_anniversaries - 1, 0)
+
+
 def calculate_vacation_accrued_months(
     admission_date: date,
     termination_date: date,
@@ -116,7 +146,8 @@ def calculate_vacation_accrued_months(
     current_month_start = period_start
 
     while accrued_months < MONTHS_IN_VACATION_ACCRUAL_PERIOD:
-        next_month_start = _add_months(current_month_start, 1)
+        # Cada marco volta ao início do período, sem herdar ajustes de fevereiro.
+        next_month_start = _add_months(period_start, accrued_months + 1)
 
         if termination_date >= next_month_start:
             accrued_months += 1

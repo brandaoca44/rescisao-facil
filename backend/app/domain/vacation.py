@@ -1,6 +1,9 @@
 from datetime import date
 
-from app.domain.accrual import calculate_completed_vacation_periods
+from app.domain.accrual import (
+    calculate_completed_vacation_periods,
+    calculate_overdue_vacation_periods,
+)
 from decimal import Decimal, ROUND_HALF_UP
 
 
@@ -119,5 +122,11 @@ def validate_vacation_periods(
     completed = calculate_completed_vacation_periods(admission_date, reference_date)
     if acquired_periods + overdue_periods > completed:
         raise ValueError("Vacation periods exceed the completed acquisition periods.")
-    if overdue_periods > max(completed - 1, 0):
+    overdue_limit = calculate_overdue_vacation_periods(admission_date, reference_date)
+    if overdue_periods > overdue_limit:
         raise ValueError("Overdue vacation requires an expired concession period.")
+    if acquired_periods > completed - overdue_limit:
+        raise ValueError(
+            "Acquired vacation periods exceed the periods within the concession period; "
+            "review the overdue vacation periods."
+        )

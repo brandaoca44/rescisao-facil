@@ -4,6 +4,7 @@ from decimal import Decimal, ROUND_HALF_UP
 SUPPORTED_IRRF_YEAR = 2026
 
 MONEY_QUANTIZER = Decimal("0.01")
+MONTHLY_WITHHOLDING_EXEMPTION_LIMIT = Decimal("10.00")
 
 SIMPLIFIED_MONTHLY_DEDUCTION_2026 = Decimal("607.20")
 
@@ -103,7 +104,7 @@ def calculate_irrf(
     inss_deduction: Decimal,
     year: int,
 ) -> Decimal:
-    """Calcula o IRRF considerando a regra simplificada da V1."""
+    """Apura o imposto com deduções e redução, antes da dispensa mensal de retenção."""
 
     if taxable_income < 0:
         raise ValueError(
@@ -146,6 +147,18 @@ def calculate_irrf(
     )
 
 
+def calculate_monthly_irrf(
+    taxable_income: Decimal,
+    inss_deduction: Decimal,
+    year: int,
+) -> Decimal:
+    """Retenção mensal isolada; dispensa até R$ 10 (Lei 9.430/1996, art. 67)."""
+    tax = calculate_irrf(taxable_income, inss_deduction, year)
+    if tax <= MONTHLY_WITHHOLDING_EXEMPTION_LIMIT:
+        return Decimal("0.00")
+    return tax
+
+
 def calculate_termination_irrf(
     salary_balance: Decimal,
     salary_balance_inss: Decimal,
@@ -167,7 +180,7 @@ def calculate_termination_irrf(
             "Termination IRRF values cannot be negative."
         )
 
-    monthly_irrf = calculate_irrf(
+    monthly_irrf = calculate_monthly_irrf(
         taxable_income=salary_balance,
         inss_deduction=salary_balance_inss,
         year=year,

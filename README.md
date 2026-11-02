@@ -7,13 +7,14 @@ A partir do salário, das datas do vínculo, da modalidade de desligamento e das
 ## Funcionalidades
 
 - Cálculo do saldo de salário.
-- Décimo terceiro proporcional.
+- Décimo terceiro proporcional, com detalhamento por ano e compensação de pagamentos e retenções anteriores informados.
 - Férias proporcionais, adquiridas e vencidas, com adicional de um terço.
 - Aviso prévio proporcional, considerando aviso trabalhado, indenizado ou não cumprido conforme a modalidade.
 - Desconto do aviso não cumprido no pedido de demissão.
 - Depósito rescisório e multa do FGTS.
 - Cálculo de INSS e IRRF sobre as verbas contempladas pelo sistema.
 - Detalhamento das verbas, dos descontos e dos totais bruto e líquido.
+- Informações por modalidade sobre saque do FGTS e possibilidade de solicitar seguro-desemprego, com as condições aplicáveis.
 
 Os valores de FGTS e da multa rescisória são apresentados separadamente das verbas pagas diretamente ao trabalhador.
 
@@ -54,7 +55,7 @@ A documentação interativa é disponibilizada pelo FastAPI em `/docs`, com os c
 
 O projeto está em desenvolvimento, com foco atual no backend. A interface e a integração com a API serão desenvolvidas após a consolidação do motor de cálculo.
 
-As próximas entregas incluem informações sobre saque do FGTS e seguro-desemprego, ampliação das validações, revisão das regras, conclusão da interface e publicação da aplicação.
+As próximas entregas incluem revisão das regras, ampliação das validações, conclusão da interface e publicação da aplicação.
 
 ## Escopo dos cálculos
 
@@ -64,3 +65,5 @@ Os resultados são estimativas para as situações contempladas pelo sistema. As
 
 - [Execução do backend e uso da API](backend/README.md).
 - [Premissas e validações dos cálculos](docs/calculation-rules.md).
+- [Regras tributárias de 2026](docs/tax-rules.md).
+- [Contagem e validação das férias](docs/vacation-rules.md).
