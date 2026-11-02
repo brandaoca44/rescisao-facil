@@ -1,3 +1,5 @@
+from calendar import monthrange
+from datetime import date
 from decimal import Decimal, ROUND_HALF_UP
 
 
@@ -24,3 +26,21 @@ def calculate_salary_balance(
         MONEY_QUANTIZER,
         rounding=ROUND_HALF_UP,
     )
+
+def calculate_salary_balance_for_dates(
+    monthly_salary: Decimal,
+    admission_date: date,
+    termination_date: date,
+) -> Decimal:
+    """Aplica a convenção de 30 dias da V1 ao intervalo efetivamente trabalhado."""
+    if termination_date < admission_date:
+        raise ValueError("Termination date cannot be before admission date.")
+
+    month_start = termination_date.replace(day=1)
+    first_worked_day = max(admission_date, month_start)
+    worked_days = (termination_date - first_worked_day).days + 1
+    last_day = monthrange(termination_date.year, termination_date.month)[1]
+    if first_worked_day == month_start and termination_date.day == last_day:
+        worked_days = 30
+
+    return calculate_salary_balance(monthly_salary, min(worked_days, 30))

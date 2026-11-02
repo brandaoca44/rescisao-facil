@@ -31,9 +31,10 @@ def calculate_notice_period_days(
 
     completed_years = termination_date.year - admission_date.year
 
-    anniversary = admission_date.replace(year=termination_date.year)
-
-    if termination_date < anniversary:
+    # A comparação não tenta construir 29/02 em um ano não bissexto.
+    if (termination_date.month, termination_date.day) < (
+        admission_date.month, admission_date.day,
+    ):
         completed_years -= 1
 
     additional_days = min(

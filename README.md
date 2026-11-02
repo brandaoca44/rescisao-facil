@@ -59,3 +59,8 @@ As próximas entregas incluem informações sobre saque do FGTS e seguro-desempr
 ## Escopo dos cálculos
 
 Os resultados são estimativas para as situações contempladas pelo sistema. As tabelas de INSS e IRRF implementadas correspondem a 2026. Particularidades como dependentes, pensão alimentícia e previdência complementar ainda não são integralmente contempladas.
+
+## Documentação
+
+- [Execução do backend e uso da API](backend/README.md).
+- [Premissas e validações dos cálculos](docs/calculation-rules.md).

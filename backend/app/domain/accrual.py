@@ -1,5 +1,5 @@
 from calendar import monthrange
-from datetime import date
+from datetime import date, timedelta
 
 
 MINIMUM_DAYS_FOR_ACCRUAL = 15
@@ -70,18 +70,32 @@ def calculate_current_vacation_period_start(
     if reference_date < admission_date:
         raise ValueError("Reference date cannot be before admission date.")
 
-    period_start = admission_date
+    completed_periods = calculate_completed_vacation_periods(
+        admission_date, reference_date,
+    )
+    return _vacation_anniversary(admission_date, completed_periods)
 
-    while True:
-        next_period_start = _add_months(
-            period_start,
-            MONTHS_IN_VACATION_ACCRUAL_PERIOD,
-        )
 
-        if next_period_start > reference_date:
-            return period_start
+def _vacation_anniversary(admission_date: date, years: int) -> date:
+    year = admission_date.year + years
+    last_day = monthrange(year, admission_date.month)[1]
+    if admission_date.day > last_day:
+        # Dia inexistente: primeiro dia subsequente (Lei 810/1949, art. 3º).
+        return date(year, admission_date.month, last_day) + timedelta(days=1)
+    return admission_date.replace(year=year)
 
-        period_start = next_period_start
+
+def calculate_completed_vacation_periods(
+    admission_date: date, reference_date: date,
+) -> int:
+    """Conta períodos de 12 meses com o último dia do vínculo incluído."""
+    if reference_date < admission_date:
+        raise ValueError("Reference date cannot be before admission date.")
+    next_day = reference_date + timedelta(days=1)
+    years = next_day.year - admission_date.year
+    if next_day < _vacation_anniversary(admission_date, years):
+        years -= 1
+    return max(years, 0)
 
 
 def calculate_vacation_accrued_months(

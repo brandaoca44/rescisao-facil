@@ -2,6 +2,7 @@ from datetime import date
 from decimal import Decimal
 
 from pydantic import BaseModel, Field
+from app.domain.notice_period_type import NoticePeriodType
 
 from app.domain.termination_type import TerminationType
 
@@ -9,12 +10,14 @@ from app.domain.termination_type import TerminationType
 class TerminationCalculationInput(BaseModel):
     """Dados necessários para o cálculo da rescisão."""
 
-    monthly_salary: Decimal = Field(gt=0)
+    monthly_salary: Decimal = Field(gt=0, max_digits=12, decimal_places=2, allow_inf_nan=False)
 
     admission_date: date
     termination_date: date
 
     termination_type: TerminationType
+
+    notice_period_type: NoticePeriodType | None = None
 
     acquired_vacation_periods: int = Field(
         default=0,
@@ -29,6 +32,9 @@ class TerminationCalculationInput(BaseModel):
     fgts_rescission_base: Decimal = Field(
         default=Decimal("0.00"),
         ge=0,
+        max_digits=12,
+        decimal_places=2,
+        allow_inf_nan=False,
     )
 
 
@@ -51,6 +57,7 @@ class TerminationCalculationResult(BaseModel):
 
     notice_period_days: int
     notice_period_value: Decimal
+    notice_period_discount: Decimal
     projected_termination_date: date
 
     fgts_termination_deposit: Decimal
@@ -59,6 +66,10 @@ class TerminationCalculationResult(BaseModel):
     inss_monthly: Decimal
     inss_thirteenth: Decimal
     inss_total: Decimal
+
+    irrf_monthly: Decimal
+    irrf_thirteenth: Decimal
+    irrf_total: Decimal
 
     total: Decimal
     net_total: Decimal

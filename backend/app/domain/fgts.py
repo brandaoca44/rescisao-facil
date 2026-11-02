@@ -2,7 +2,6 @@ from decimal import Decimal, ROUND_HALF_UP
 
 
 FGTS_RATE = Decimal("0.08")
-DISMISSAL_WITHOUT_CAUSE_PENALTY_RATE = Decimal("0.40")
 MONEY_QUANTIZER = Decimal("0.01")
 
 
@@ -45,13 +44,17 @@ def calculate_fgts_termination_deposit(
 
 def calculate_fgts_penalty(
     rescission_base: Decimal,
+    penalty_rate: Decimal,
 ) -> Decimal:
-    """Calcula a multa de 40% do FGTS na dispensa sem justa causa."""
+    """Calcula a indenização do FGTS conforme a alíquota da modalidade."""
 
     if rescission_base < 0:
         raise ValueError("FGTS rescission base cannot be negative.")
 
-    penalty = rescission_base * DISMISSAL_WITHOUT_CAUSE_PENALTY_RATE
+    if penalty_rate < 0:
+        raise ValueError("FGTS penalty rate cannot be negative.")
+
+    penalty = rescission_base * penalty_rate
 
     return penalty.quantize(
         MONEY_QUANTIZER,

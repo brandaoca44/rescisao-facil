@@ -1,3 +1,6 @@
+from datetime import date
+
+from app.domain.accrual import calculate_completed_vacation_periods
 from decimal import Decimal, ROUND_HALF_UP
 
 
@@ -103,3 +106,18 @@ def calculate_overdue_vacation(
         MONEY_QUANTIZER,
         rounding=ROUND_HALF_UP,
     )
+
+def validate_vacation_periods(
+    admission_date: date,
+    reference_date: date,
+    acquired_periods: int,
+    overdue_periods: int,
+) -> None:
+    """Valida períodos informados sem reconstruir o histórico de férias gozadas."""
+    if acquired_periods < 0 or overdue_periods < 0:
+        raise ValueError("Vacation periods cannot be negative.")
+    completed = calculate_completed_vacation_periods(admission_date, reference_date)
+    if acquired_periods + overdue_periods > completed:
+        raise ValueError("Vacation periods exceed the completed acquisition periods.")
+    if overdue_periods > max(completed - 1, 0):
+        raise ValueError("Overdue vacation requires an expired concession period.")

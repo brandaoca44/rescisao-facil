@@ -27,17 +27,37 @@ def test_calculate_fgts_termination_deposit() -> None:
     assert result == Decimal("628.00")
 
 
-def test_calculate_fgts_penalty() -> None:
+def test_calculate_fgts_penalty_with_forty_percent_rate() -> None:
     result = calculate_fgts_penalty(
         rescission_base=Decimal("10000.00"),
+        penalty_rate=Decimal("0.40"),
     )
 
     assert result == Decimal("4000.00")
 
 
+def test_calculate_fgts_penalty_with_twenty_percent_rate() -> None:
+    result = calculate_fgts_penalty(
+        rescission_base=Decimal("10000.00"),
+        penalty_rate=Decimal("0.20"),
+    )
+
+    assert result == Decimal("2000.00")
+
+
+def test_calculate_fgts_penalty_with_zero_rate() -> None:
+    result = calculate_fgts_penalty(
+        rescission_base=Decimal("10000.00"),
+        penalty_rate=Decimal("0.00"),
+    )
+
+    assert result == Decimal("0.00")
+
+
 def test_calculate_fgts_penalty_with_zero_base() -> None:
     result = calculate_fgts_penalty(
         rescission_base=Decimal("0.00"),
+        penalty_rate=Decimal("0.40"),
     )
 
     assert result == Decimal("0.00")
@@ -54,6 +74,15 @@ def test_fgts_penalty_rejects_negative_base() -> None:
     with pytest.raises(ValueError):
         calculate_fgts_penalty(
             rescission_base=Decimal("-100.00"),
+            penalty_rate=Decimal("0.40"),
+        )
+
+
+def test_fgts_penalty_rejects_negative_rate() -> None:
+    with pytest.raises(ValueError):
+        calculate_fgts_penalty(
+            rescission_base=Decimal("10000.00"),
+            penalty_rate=Decimal("-0.01"),
         )
 
 
