@@ -53,7 +53,7 @@ A documentação interativa é disponibilizada pelo FastAPI em `/docs`, com os c
 
 ## Desenvolvimento
 
-O projeto está em desenvolvimento, com foco atual no backend. A interface e a integração com a API serão desenvolvidas após a consolidação do motor de cálculo.
+O motor de cálculo possui um checkpoint técnico documentado e validado. A interface e sua integração com a API são as próximas etapas de desenvolvimento.
 
 As próximas entregas incluem revisão das regras, ampliação das validações, conclusão da interface e publicação da aplicação.
 

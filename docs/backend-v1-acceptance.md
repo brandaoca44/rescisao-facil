@@ -4,7 +4,7 @@
 
 O backend atende aos critérios técnicos de integração dentro do escopo descrito neste documento. A revisão executou 378 testes com avisos tratados como erros, sem falhas, e a verificação de dependências não encontrou incompatibilidades.
 
-O fechamento do checkpoint versionado permanece pendente até o commit dos últimos ajustes de contrato e uma execução aprovada do CI sobre esse mesmo commit. A execução anterior do CI não substitui essa confirmação.
+O checkpoint técnico está consolidado no commit `c123b4622f85e7cee0876fba76cb41b9fca3c442`, com [Backend CI aprovado sobre esse mesmo commit](https://github.com/brandaoca44/rescisao-facil/actions/runs/41392579086). A confirmação cobre a instalação, a verificação de dependências e os testes do contrato revisado.
 
 Este aceite não amplia o escopo do motor nem representa certificação de cálculo trabalhista ou fiscal definitivo.
 
@@ -32,7 +32,7 @@ Este aceite não amplia o escopo do motor nem representa certificação de cálc
 | Direitos informativos condicionais | Conforme | `test_termination_benefits.py`, `test_termination_benefits_integration.py` |
 | Contrato, exemplos e erros HTTP | Conforme | `test_api_contract.py` |
 | Dependências e execução dos testes | Conforme localmente | `requirements.txt`, `pip check` e suíte completa |
-| CI do checkpoint final | Pendente de consolidação | `.github/workflows/backend-ci.yml` |
+| CI do checkpoint técnico | Conforme | [Execução aprovada do commit c123b46](https://github.com/brandaoca44/rescisao-facil/actions/runs/41392579086) |
 
 Os arquivos de teste estão em [backend/tests](../backend/tests). Os exemplos publicados no OpenAPI são executados pelos testes de contrato; a resposta de sucesso documentada é comparada à resposta real. Os testes verificam os formatos de erro 400 e 422, a rejeição de campos desconhecidos, a serialização decimal e a disponibilidade de `/docs`, `/openapi.json` e `/health`.
 
@@ -61,10 +61,8 @@ O endpoint é `POST /api/v1/terminations/calculate`. Valores monetários retorna
 
 O cliente deve usar as descrições e os exemplos do OpenAPI, aceitar os dois formatos de `detail` no HTTP 422 e exibir as condições de `benefits`. As instruções completas estão no [guia do backend](../backend/README.md).
 
-## Fechamento do checkpoint
+## Continuidade
 
-1. Revisar e versionar os ajustes de contrato e este registro de aceite.
-2. Publicar o commit e confirmar sucesso do Backend CI sobre o mesmo SHA.
-3. Confirmar que as limitações acima compõem o escopo aprovado da V1 antes de definir a interface.
+O checkpoint técnico permite planejar a integração da interface dentro do escopo documentado. A próxima etapa é revisar a [proposta do frontend](frontend-v1-proposal.md), incluindo como apresentar as limitações ao usuário, antes da implementação. Mudanças posteriores nas regras ou no contrato precisam de nova validação dos testes e do CI.
 
 A preparação do frontend e do deploy deve preservar os serviços existentes. Nenhuma porta, container ou banco de dados é necessário para os testes internos. Se a integração exigir um servidor local ou nova infraestrutura, verificar as portas ocupadas e confirmar a escolha com o responsável antes de iniciar. Não há necessidade validada de autenticação, persistência ou PostgreSQL para o motor atual.

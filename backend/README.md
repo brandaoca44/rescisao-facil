@@ -210,4 +210,4 @@ O cálculo adota as [premissas documentadas](../docs/calculation-rules.md), incl
 
 ## Aceite da V1
 
-O [registro de aceite técnico](../docs/backend-v1-acceptance.md) reúne o escopo verificado, as evidências e as limitações para integração. O fechamento do checkpoint exige que os ajustes estejam versionados e aprovados pelo CI no mesmo commit.
+O [registro de aceite técnico](../docs/backend-v1-acceptance.md) reúne o escopo verificado, as evidências e as limitações para integração. O checkpoint técnico do contrato foi versionado e aprovado pelo CI; o registro identifica o commit e a execução correspondentes.
