@@ -66,7 +66,11 @@ Envie o corpo abaixo ao endpoint de cálculo com `Content-Type: application/json
 }
 ```
 
-Datas usam `AAAA-MM-DD`. Os valores monetários de entrada aceitam até dez dígitos inteiros e duas casas decimais. O salário deve ser positivo e a base do FGTS não pode ser negativa. As quantidades de férias têm zero como padrão e devem ser compatíveis com o vínculo.
+O Swagger oferece exemplos executáveis das quatro modalidades, aviso trabalhado e virada do ano com décimo terceiro anterior. A resposta de sucesso documentada corresponde a um cálculo completo.
+
+Datas usam `AAAA-MM-DD`. Os valores monetários de entrada aceitam até dez dígitos inteiros e duas casas decimais. O salário deve ser positivo e a base do FGTS não pode ser negativa. As quantidades de férias têm zero como padrão e devem ser compatíveis com o vínculo. Campos desconhecidos no corpo da requisição ou no histórico de décimo terceiro são rejeitados com HTTP 422.
+
+No aviso trabalhado, `termination_date` representa o último dia de cumprimento. No aviso indenizado, representa o desligamento efetivo antes da projeção calculada pelo motor.
 
 `fgts_rescission_base` representa a base informada para calcular a multa. Não deve ser interpretada como saldo disponível para saque.
 
@@ -174,8 +178,36 @@ O objeto não altera os totais, não calcula o saldo a sacar e não estima valor
 - **400:** inconsistência de domínio, como desligamento anterior à admissão, férias incompatíveis ou combinação de aviso inválida.
 - **422:** entrada inválida ou ano tributário não suportado. As tabelas atuais atendem desligamentos em 2026.
 
+Erros de domínio e funcionalidades não suportadas usam uma mensagem em `detail`:
+
+```json
+{"detail": "Notice period type is not allowed for this termination type."}
+```
+
+Erros de validação de entrada usam uma lista em `detail`, com `loc` para identificar o campo, `type` para classificar o erro e `msg` para descrevê-lo. Também podem incluir `input` e `ctx`. Exemplo para salário zero:
+
+```json
+{
+  "detail": [{
+    "type": "greater_than",
+    "loc": ["body", "monthly_salary"],
+    "msg": "Input should be greater than 0",
+    "input": "0.00",
+    "ctx": {"gt": 0}
+  }]
+}
+```
+
+O cliente deve aceitar ambos os formatos de HTTP 422. Para relacionar erros de entrada aos campos, use `loc` e `type`, sem depender de comparação textual com `msg`. Os exemplos e schemas de erro estão disponíveis no Swagger.
+
+O contrato usa valores monetários decimais em texto na resposta. `total` é o bruto integral antes das compensações; `net_total` inclui os abatimentos e pode ser negativo se os descontos superarem as verbas. Um saldo negativo não constitui, por si, autorização de cobrança.
+
 ## Premissas e limitações
 
 As [regras tributárias de 2026](../docs/tax-rules.md) detalham as bases, a dispensa de retenção mensal até R$ 10, o tratamento do décimo terceiro e as limitações de agregação de pagamentos.
 
 O cálculo adota as [premissas documentadas](../docs/calculation-rules.md), incluindo a convenção de 30 dias para saldo salarial. A API não reconstrói histórico de férias ou depósitos do FGTS. Dependentes, pensão alimentícia e previdência complementar não são integralmente contemplados. Os direitos informativos não avaliam a sistemática individual de saque, bloqueios da conta ou os requisitos pessoais de concessão do seguro-desemprego.
+
+## Aceite da V1
+
+O [registro de aceite técnico](../docs/backend-v1-acceptance.md) reúne o escopo verificado, as evidências e as limitações para integração. O fechamento do checkpoint exige que os ajustes estejam versionados e aprovados pelo CI no mesmo commit.

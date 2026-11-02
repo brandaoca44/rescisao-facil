@@ -67,3 +67,4 @@ Os resultados são estimativas para as situações contempladas pelo sistema. As
 - [Premissas e validações dos cálculos](docs/calculation-rules.md).
 - [Regras tributárias de 2026](docs/tax-rules.md).
 - [Contagem e validação das férias](docs/vacation-rules.md).
+- [Escopo e critérios de aceite do backend V1](docs/backend-v1-acceptance.md).

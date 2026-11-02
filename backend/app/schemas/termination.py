@@ -37,14 +37,40 @@ class ThirteenthPreviousPaymentInput(BaseModel):
 class TerminationCalculationInput(BaseModel):
     """Dados necessários para o cálculo da rescisão."""
 
-    monthly_salary: Decimal = Field(gt=0, max_digits=12, decimal_places=2, allow_inf_nan=False)
+    model_config = ConfigDict(extra="forbid")
 
-    admission_date: date
-    termination_date: date
+    monthly_salary: Decimal = Field(
+        gt=0, max_digits=12, decimal_places=2, allow_inf_nan=False,
+        description="Salário mensal bruto em reais, com até duas casas decimais.",
+        examples=["3000.00"],
+    )
 
-    termination_type: TerminationType
+    admission_date: date = Field(
+        description="Data de admissão no formato AAAA-MM-DD.",
+        examples=["2024-01-10"],
+    )
+    termination_date: date = Field(
+        description=(
+            "Data do desligamento efetivo antes da projeção indenizada. "
+            "No aviso trabalhado, informar o último dia de cumprimento. "
+            "As tabelas tributárias disponíveis atendem desligamentos em 2026."
+        ),
+        examples=["2026-08-20"],
+    )
 
-    notice_period_type: NoticePeriodType | None = None
+    termination_type: TerminationType = Field(
+        description="Modalidade do desligamento; define as verbas aplicáveis.",
+    )
+
+    notice_period_type: NoticePeriodType | None = Field(
+        default=None,
+        description=(
+            "Situação do aviso compatível com a modalidade. Omitido ou null "
+            "preserva o comportamento anterior: indenizado na dispensa sem "
+            "justa causa e no acordo; sem desconto no pedido de demissão; "
+            "sem aviso na justa causa."
+        ),
+    )
 
     acquired_vacation_periods: int = Field(
         default=0, ge=0,
@@ -65,6 +91,7 @@ class TerminationCalculationInput(BaseModel):
     )
 
     fgts_rescission_base: Decimal = Field(
+        description="Base informada para a multa do FGTS; não é saldo disponível para saque.",
         default=Decimal("0.00"),
         ge=0,
         max_digits=12,
@@ -115,21 +142,21 @@ class ThirteenthSalaryYearResult(BaseModel):
 class ThirteenthSettlementResult(BaseModel):
     """Apuração integral e compensações do histórico informado."""
 
-    gross_paid: Decimal
-    gross_balance: Decimal
-    inss_assessed: Decimal
-    irrf_assessed: Decimal
-    inss_previously_withheld: Decimal
-    irrf_previously_withheld: Decimal
-    fgts_previously_deposited: Decimal
+    gross_paid: Decimal = Field(description='Décimo terceiro bruto já pago informado, abatido uma vez no líquido.')
+    gross_balance: Decimal = Field(description='Saldo bruto do décimo terceiro após o pagamento anterior.')
+    inss_assessed: Decimal = Field(description='INSS integral apurado sobre o décimo terceiro, antes dos abatimentos.')
+    irrf_assessed: Decimal = Field(description='IRRF integral apurado sobre o décimo terceiro, antes dos abatimentos.')
+    inss_previously_withheld: Decimal = Field(description='INSS anterior informado e compensado no desconto atual.')
+    irrf_previously_withheld: Decimal = Field(description='IRRF anterior informado e compensado no desconto atual.')
+    fgts_previously_deposited: Decimal = Field(description='FGTS anterior informado e abatido do depósito rescisório.')
 
 
 class TerminationCalculationResult(BaseModel):
     """Resultado das verbas atualmente suportadas pelo motor."""
 
-    salary_balance: Decimal
+    salary_balance: Decimal = Field(description='Saldo de salário bruto em reais.')
 
-    thirteenth_salary: Decimal
+    thirteenth_salary: Decimal = Field(description='Décimo terceiro bruto integral, antes do pagamento anterior informado.')
     thirteenth_salary_by_year: list[ThirteenthSalaryYearResult] = Field(
         description=(
             "Avos e valores por ano, do ano do desligamento ao fim da projeção. "
@@ -148,33 +175,35 @@ class TerminationCalculationResult(BaseModel):
         ),
     )
 
-    vacation_accrued_months: int
-    proportional_vacation: Decimal
-    proportional_vacation_bonus: Decimal
+    vacation_accrued_months: int = Field(description="Avos proporcionais do período aquisitivo incompleto.")
+    proportional_vacation: Decimal = Field(description='Férias proporcionais do período incompleto, sem o adicional.')
+    proportional_vacation_bonus: Decimal = Field(description='Adicional de um terço sobre as férias proporcionais.')
 
-    acquired_vacation: Decimal
-    acquired_vacation_bonus: Decimal
+    acquired_vacation: Decimal = Field(description='Férias integrais simples informadas, sem o adicional.')
+    acquired_vacation_bonus: Decimal = Field(description='Adicional de um terço sobre as férias adquiridas.')
 
-    overdue_vacation: Decimal
-    overdue_vacation_bonus: Decimal
+    overdue_vacation: Decimal = Field(description='Férias integrais vencidas informadas, com a dobra e sem o adicional.')
+    overdue_vacation_bonus: Decimal = Field(description='Adicional de um terço sobre o valor dobrado das férias vencidas.')
 
-    notice_period_days: int
-    notice_period_value: Decimal
-    notice_period_discount: Decimal
-    projected_termination_date: date
+    notice_period_days: int = Field(description="Dias de aviso aplicáveis ao cenário, mesmo quando não há indenização.")
+    notice_period_value: Decimal = Field(description='Aviso indenizado recebido; não representa desconto.')
+    notice_period_discount: Decimal = Field(description='Desconto do aviso não cumprido no pedido de demissão.')
+    projected_termination_date: date = Field(description="Fim da projeção indenizada; sem projeção, coincide com termination_date.")
 
-    fgts_termination_deposit: Decimal
-    fgts_penalty: Decimal
+    fgts_termination_deposit: Decimal = Field(description='Depósito das verbas calculadas, menos FGTS anterior do décimo terceiro informado. Fora de total e net_total.')
+    fgts_penalty: Decimal = Field(description='Multa calculada sobre fgts_rescission_base; fora de total e net_total.')
 
-    inss_monthly: Decimal
-    inss_thirteenth: Decimal
-    inss_total: Decimal
+    inss_monthly: Decimal = Field(description='INSS sobre o saldo salarial, separado do décimo terceiro.')
+    inss_thirteenth: Decimal = Field(description='INSS adicional sobre o décimo terceiro, após a retenção anterior informada.')
+    inss_total: Decimal = Field(description='Soma do INSS mensal com o adicional do décimo terceiro a descontar agora.')
 
-    irrf_monthly: Decimal
-    irrf_thirteenth: Decimal
-    irrf_total: Decimal
+    irrf_monthly: Decimal = Field(description='IRRF sobre o saldo salarial, com a dispensa de retenção mensal aplicável.')
+    irrf_thirteenth: Decimal = Field(description='IRRF adicional sobre o décimo terceiro, após a retenção anterior informada.')
+    irrf_total: Decimal = Field(description='Soma do IRRF mensal com o adicional do décimo terceiro a descontar agora.')
 
-    total: Decimal
-    net_total: Decimal
+    total: Decimal = Field(description='Bruto integral das verbas, incluindo o décimo terceiro antes de pagamentos anteriores. Não inclui FGTS nem multa.')
+    net_total: Decimal = Field(description='Bruto menos INSS, IRRF, desconto do aviso e décimo terceiro bruto já pago informado. Pode ser negativo se os descontos superarem as verbas.')
 
-    benefits: TerminationBenefitsResult
+    benefits: TerminationBenefitsResult = Field(
+        description="Direitos por modalidade, condicionados à sistemática de saque e aos requisitos individuais.",
+    )
