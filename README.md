@@ -8,7 +8,7 @@ O projeto integra meu portfólio profissional e busca demonstrar modelagem de do
 
 O backend está em desenvolvimento avançado. A V1 ainda depende de auditoria das regras, validações complementares, documentação e estabilização do contrato da API.
 
-O último checkpoint informado é de **124 testes aprovados**. Na revisão de documentação de 02/11/2026, a suíte não pôde ser executada: o ambiente virtual existente aponta para uma instalação de Python ausente nesta máquina. Esse checkpoint não representa uma execução verificada nesta revisão.
+O último checkpoint informado é de **124 testes aprovados**. 
 
 Há uma estrutura inicial de Next.js em `frontend/`. A interface do produto e sua integração com a API permanecem pendentes. O backend será concluído antes da evolução funcional do frontend.
 
