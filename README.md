@@ -4,6 +4,22 @@ Aplicação web para estimar os valores de uma rescisão trabalhista brasileira 
 
 A partir do salário, das datas do vínculo, da modalidade de desligamento e das informações de férias e FGTS, o sistema calcula as parcelas da rescisão e apresenta o total bruto, os descontos e o total líquido.
 
+## Demonstração
+
+O formulário guia o preenchimento em quatro etapas. As capturas mostram uma dispensa sem justa causa com dados fictícios e um líquido estimado de **R$ 22.516,12**.
+
+### Página inicial
+
+![Página inicial do Rescisão Fácil com o botão Calcular minha rescisão](docs/screenshots/inicio.png)
+
+### Formulário da calculadora
+
+![Primeira etapa do formulário com salário em reais e datas preenchidas](docs/screenshots/calculadora.png)
+
+### Resultado da simulação
+
+![Resultado do exemplo com total líquido estimado de R$ 22.516,12](docs/screenshots/resultado.png)
+
 ## Funcionalidades
 
 - Cálculo do saldo de salário.
@@ -33,7 +49,7 @@ Os valores de FGTS e da multa rescisória são apresentados separadamente das ve
 | Cálculos financeiros | Decimal |
 | Testes automatizados | pytest e TestClient |
 | Servidor da API | Uvicorn |
-| Estrutura inicial do frontend | Next.js, React, TypeScript e Tailwind CSS |
+| Frontend | Next.js, React, TypeScript e Tailwind CSS |
 
 ## Arquitetura
 
@@ -51,11 +67,12 @@ O endpoint `POST /api/v1/terminations/calculate` recebe os dados do contrato e r
 
 A documentação interativa é disponibilizada pelo FastAPI em `/docs`, com os campos de entrada, os formatos de resposta e a possibilidade de testar requisições.
 
-## Desenvolvimento
+## Executar localmente
 
-O motor de cálculo possui um checkpoint técnico documentado e validado. A interface e sua integração com a API são as próximas etapas de desenvolvimento.
+Inicie o FastAPI e configure a origem dele em `BACKEND_API_URL` no ambiente do Next.js. Os guias descrevem a instalação, a configuração e os comandos de execução.
 
-As próximas entregas incluem revisão das regras, ampliação das validações, conclusão da interface e publicação da aplicação.
+- [Guia do backend](backend/README.md)
+- [Guia do frontend](frontend/README.md)
 
 ## Escopo dos cálculos
 
