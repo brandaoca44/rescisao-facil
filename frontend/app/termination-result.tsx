@@ -34,16 +34,17 @@ function Amounts({ rows }: { rows: [string, string][] }) {
   ))}</dl>;
 }
 
-export default function TerminationResult({ result }: { result: CalculationResult }) {
+export default function TerminationResult({ result, fgtsPenaltyPending = false }: { result: CalculationResult; fgtsPenaltyPending?: boolean }) {
   const settlement = result.thirteenth_settlement;
   return (
     <section className="form-card result-card" aria-labelledby="result-title">
       <p className="eyebrow">RESULTADO DA SIMULAÇÃO</p>
       <h2 id="result-title">Total líquido estimado</h2>
       <p className="net-value">{currency.format(Number(result.net_total))}</p>
+      {fgtsPenaltyPending && <p className="wizard-tip" role="status"><strong>Multa do FGTS pendente.</strong> As demais verbas foram calculadas. A multa depende da base para fins rescisórios deste contrato e poderá acrescentar um valor a receber na conta do FGTS.</p>}
       {Number(result.net_total) < 0 && <p className="field-note">Os descontos superaram as verbas neste cenário. O saldo da simulação não determina uma cobrança.</p>}
       <Amounts rows={[["Total bruto", result.total]]} />
-      <p className="field-note">Data de desligamento considerada para a projeção: {result.projected_termination_date.split("-").reverse().join("/")}. Revise os períodos de férias usando essa data.</p>
+      <p className="field-note">Data considerada no cálculo, incluindo a projeção do aviso quando aplicável: {result.projected_termination_date.split("-").reverse().join("/")}.</p>
       <details open className="history">
         <summary>Verbas da rescisão</summary>
         <Amounts rows={[
@@ -72,7 +73,11 @@ export default function TerminationResult({ result }: { result: CalculationResul
       </details>
       <details className="history">
         <summary>FGTS e direitos informativos</summary>
-        <Amounts rows={[["Depósito rescisório", result.fgts_termination_deposit], ["Multa do FGTS", result.fgts_penalty]]} />
+        <Amounts rows={[
+          ["Depósito rescisório", result.fgts_termination_deposit],
+          ...(fgtsPenaltyPending ? [] : [["Multa do FGTS", result.fgts_penalty] as [string, string]]),
+        ]} />
+        {fgtsPenaltyPending && <p className="field-note">Multa do FGTS a calcular quando você informar a base do extrato.</p>}
         <p className="field-note">Esses valores ficam separados do pagamento direto da rescisão.</p>
         <p className="field-note">Percentual na sistemática saque-rescisão: {percentage.format(Number(result.benefits.fgts_withdrawal_rate_under_saque_rescisao))}.</p>
         <p className="field-note">{result.benefits.unemployment_insurance_possible_by_termination_type

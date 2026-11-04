@@ -64,7 +64,10 @@ function errorMessage(status: number, detail: unknown) {
     if (detail.includes("tables for")) return "Informe um desligamento ocorrido em 2026.";
     if (detail.includes("before admission")) return "A data de desligamento deve ser igual ou posterior à admissão.";
     if (detail.includes("Notice period")) return "Escolha um aviso prévio compatível com a modalidade.";
-    if (/vacation|concession period/i.test(detail)) return "Confira a classificação e a quantidade dos períodos de férias na data projetada.";
+    if (detail.includes("Vacation periods exceed")) return "A quantidade de férias informada supera os anos completos deste contrato. Cada período representa as férias de um ano de trabalho. Confira os dois campos e conte cada período uma única vez.";
+    if (detail.includes("Overdue vacation requires")) return "Há períodos demais no campo de férias com prazo encerrado para as datas deste contrato. Confira se essas férias ainda estão dentro do prazo para tirar e informe-as no primeiro campo.";
+    if (detail.includes("Acquired vacation periods exceed")) return "Há períodos demais no campo de férias ainda dentro do prazo para tirar. Confira se algum deles já passou do prazo e deve ser informado no segundo campo. Conte apenas férias ainda pendentes.";
+    if (/vacation|concession period/i.test(detail)) return "As férias informadas não correspondem às datas do contrato. Confira as datas e conte apenas períodos completos ainda pendentes, sem repetir o mesmo período nos dois campos.";
     if (/thirteenth/i.test(detail)) return "Revise o décimo terceiro bruto já pago e os descontos ou depósitos anteriores. Os valores precisam ser compatíveis com o total apurado.";
   }
   return "Não foi possível calcular a rescisão. Confira os dados e tente novamente.";
@@ -75,6 +78,8 @@ export default function TerminationForm() {
   const [modality, setModality] = useState<Modality | "">("");
   const [notice, setNotice] = useState("");
   const [admission, setAdmission] = useState("");
+  const [pendingVacation, setPendingVacation] = useState("");
+  const [knowsFgts, setKnowsFgts] = useState(false);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<CalculationResult | null>(null);
@@ -97,16 +102,20 @@ export default function TerminationForm() {
 
     const data = new FormData(event.currentTarget);
     const read = (name: string) => String(data.get(name) ?? "");
+    if (pendingVacation === "yes" && Number(read("acquired_vacation_periods")) + Number(read("overdue_vacation_periods")) === 0) {
+      setError("Informe pelo menos um período de férias pendente ou selecione que suas férias estão em dia.");
+      return;
+    }
     const history = Object.fromEntries(historyFields.filter((name) => read(name)).map((name) => [name, decimal(read(name))]));
     const payload = {
       monthly_salary: decimal(read("monthly_salary")),
       admission_date: read("admission_date"),
       termination_date: read("termination_date"),
       termination_type: modality,
-      acquired_vacation_periods: Number(read("acquired_vacation_periods")),
-      overdue_vacation_periods: Number(read("overdue_vacation_periods")),
+      acquired_vacation_periods: pendingVacation === "yes" ? Number(read("acquired_vacation_periods")) : 0,
+      overdue_vacation_periods: pendingVacation === "yes" ? Number(read("overdue_vacation_periods")) : 0,
       ...(showNotice ? { notice_period_type: notice } : {}),
-      ...(showFgts && read("fgts_rescission_base") ? { fgts_rescission_base: decimal(read("fgts_rescission_base")) } : {}),
+      ...(showFgts && knowsFgts && read("fgts_rescission_base") ? { fgts_rescission_base: decimal(read("fgts_rescission_base")) } : {}),
       ...(Object.keys(history).length ? { thirteenth_previous_payment: history } : {}),
     };
 
@@ -174,11 +183,37 @@ export default function TerminationForm() {
       </fieldset>
       <fieldset disabled={busy} hidden={step !== 2}>
         <legend>Férias e outras verbas</legend>
-        <p className="field-note" id="vacation-hint">Informe os períodos integrais pendentes na data projetada do desligamento. Cada período entra em uma única categoria.</p>
+        <p className="field-note" id="vacation-hint">{modality === "dismissal_with_cause" ? "Na dispensa com justa causa, esta simulação considera as férias de anos completos ainda pendentes." : "As férias proporcionais são calculadas automaticamente pelas datas informadas. Precisamos saber apenas se existem férias de anos completos ainda pendentes."}</p>
         <div className="field-grid">
-          <label>Férias adquiridas<input name="acquired_vacation_periods" type="number" min="0" step="1" placeholder="0" aria-describedby="vacation-hint" /></label>
-          <label>Férias vencidas<input name="overdue_vacation_periods" type="number" min="0" step="1" placeholder="0" aria-describedby="vacation-hint" /></label>
-          {showFgts && <label className="full">Base para a multa do FGTS<input name="fgts_rescission_base" inputMode="decimal" onBlur={formatMoney} onFocus={editMoney} pattern={moneyPattern} title="Informe um valor em reais com até duas casas decimais." placeholder="Ex.: 10.000,00" /><small>Consulte a base para fins rescisórios no extrato do FGTS.</small></label>}
+          <label className="full">Você tem férias de anos completos que ainda não tirou?
+            <select required value={pendingVacation} onChange={(event) => setPendingVacation(event.target.value)} aria-describedby="vacation-hint">
+              <option value="">Selecione uma resposta</option>
+              <option value="no">Não, minhas férias anteriores estão em dia</option>
+              <option value="yes">Sim, tenho férias pendentes</option>
+            </select>
+          </label>
+          {pendingVacation === "yes" && <>
+            <label>Períodos ainda dentro do prazo para tirar<input name="acquired_vacation_periods" type="number" min="0" step="1" defaultValue="0" required /><small>Cada período corresponde às férias de um ano completo de trabalho. Após completar esse ano, a empresa tem mais 12 meses para concedê-las.</small></label>
+            <label>Períodos com prazo para tirar já encerrado<input name="overdue_vacation_periods" type="number" min="0" step="1" defaultValue="0" required /><small>Conte aqui os períodos em que esses 12 meses adicionais já terminaram. Cada período deve entrar em apenas um dos campos. Consulte o RH se tiver dúvida.</small></label>
+          </>}
+          <label className="full">Percentual da multa do FGTS
+            <select value={modality === "dismissal_without_cause" ? "40" : modality === "mutual_agreement" ? "20" : "0"} disabled>
+              <option value="0">0% — sem multa nesta modalidade</option>
+              <option value="20">20% — acordo entre empregado e empregador</option>
+              <option value="40">40% — dispensa sem justa causa</option>
+            </select>
+            <small>Definido automaticamente pelo tipo de desligamento escolhido.</small>
+          </label>
+          {showFgts && <>
+            <label className="full">Você sabe o valor do FGTS usado para calcular a multa?
+              <select value={knowsFgts ? "yes" : "no"} onChange={(event) => setKnowsFgts(event.target.value === "yes")}>
+                <option value="no">Não sei informar — continuar sem esse valor</option>
+                <option value="yes">Sim, tenho a base para fins rescisórios do extrato</option>
+              </select>
+              <small>Você pode calcular as demais verbas agora. Sem esse valor, a multa do FGTS ficará pendente no resultado.</small>
+            </label>
+            {knowsFgts && <label className="full">Base para fins rescisórios do FGTS (R$)<input name="fgts_rescission_base" required inputMode="decimal" onBlur={formatMoney} onFocus={editMoney} pattern={moneyPattern} title="Informe um valor em reais com até duas casas decimais." placeholder="Ex.: 10.000,00" /><small>Use o valor indicado para este contrato no extrato do FGTS ou informado pelo RH.</small></label>}
+          </>}
         </div>
         {modality !== "dismissal_with_cause" && <details className="history">
           <summary>Décimo terceiro já pago <span>Opcional</span></summary>
@@ -199,7 +234,7 @@ export default function TerminationForm() {
     </form>
     <div aria-live="polite">
       {step === 3 && result && <>
-        <TerminationResult result={result} />
+        <TerminationResult result={result} fgtsPenaltyPending={Boolean(showFgts && !knowsFgts)} />
         <div className="wizard-actions"><button type="button" onClick={() => setStep(2)}>← Revisar verbas</button></div>
       </>}
     </div>
